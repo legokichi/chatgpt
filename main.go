@@ -32,17 +32,20 @@ func doJson(client gpt3.Client, r io.Reader, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		err = client.CompletionStreamWithEngine(
+		var hoge = gpt3.ChatCompletionRequestMessage{
+			Role:    "user",
+			Content: p.Text,
+		}
+		err = client.ChatCompletionStream(
 			context.Background(),
-			gpt3.TextDavinci003Engine,
-			gpt3.CompletionRequest{
-				Prompt: []string{
-					p.Text,
-				},
-				MaxTokens:   gpt3.IntPtr(3000),
-				Temperature: gpt3.Float32Ptr(0),
-			}, func(resp *gpt3.CompletionResponse) {
-				enc.Encode(response{EOF: false, Text: resp.Choices[0].Text})
+			gpt3.ChatCompletionRequest{
+				Model:    "gpt-4",
+				Messages: []gpt3.ChatCompletionRequestMessage{hoge},
+				// https://github.com/transitive-bullshit/chatgpt-api/issues/471
+				MaxTokens:   8100, // not 8192 because we're leaving some buffer room,
+				Temperature: 0.0,
+			}, func(resp *gpt3.ChatCompletionStreamResponse) {
+				enc.Encode(response{EOF: false, Text: resp.Choices[0].Delta.Content})
 			},
 		)
 		if err != nil {
